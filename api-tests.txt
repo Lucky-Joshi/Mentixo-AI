@@ -1,0 +1,261 @@
+====================================================
+  MENTIXO AI - API TEST CASES
+  Base URL: http://localhost:5000
+====================================================
+
+----------------------------------------------------
+0. HEALTH CHECK
+----------------------------------------------------
+Method : GET
+URL    : http://localhost:5000/
+
+Expected Response:
+{
+  "message": "Mentixo AI server is running"
+}
+
+
+----------------------------------------------------
+1. AUTH API (public — no token needed)
+----------------------------------------------------
+
+-- Signup --
+Method  : POST
+URL     : http://localhost:5000/api/auth/signup
+Headers : Content-Type: application/json
+Body:
+{
+  "name": "Lucky",
+  "email": "lucky@example.com",
+  "password": "secret123"
+}
+
+Expected Response (201):
+{
+  "success": true,
+  "token": "<jwt_token>",
+  "user": { "id": "...", "name": "Lucky", "email": "lucky@example.com" }
+}
+
+-- Signup duplicate email (should return 409) --
+Body:
+{
+  "name": "Lucky",
+  "email": "lucky@example.com",
+  "password": "secret123"
+}
+
+-- Signup missing fields (should return 400) --
+Body:
+{
+  "email": "lucky@example.com"
+}
+
+-- Login --
+Method  : POST
+URL     : http://localhost:5000/api/auth/login
+Headers : Content-Type: application/json
+Body:
+{
+  "email": "lucky@example.com",
+  "password": "secret123"
+}
+
+Expected Response (200):
+{
+  "success": true,
+  "token": "<jwt_token>",
+  "user": { "id": "...", "name": "Lucky", "email": "lucky@example.com" }
+}
+
+-- Login wrong password (should return 401) --
+Body:
+{
+  "email": "lucky@example.com",
+  "password": "wrongpassword"
+}
+
+
+----------------------------------------------------
+NOTE: For all routes below, copy the token from
+signup/login and add this header to every request:
+
+  Authorization: Bearer <your_jwt_token>
+----------------------------------------------------
+
+
+----------------------------------------------------
+2. CHAT API (protected)
+----------------------------------------------------
+Method  : POST
+URL     : http://localhost:5000/api/chat
+Headers :
+  Content-Type: application/json
+  Authorization: Bearer <your_jwt_token>
+
+-- Test 1 --
+Body:
+{
+  "prompt": "Explain recursion with an example"
+}
+
+-- Test 2 --
+Body:
+{
+  "prompt": "What is a binary search tree?"
+}
+
+-- Test 3: No token (should return 401) --
+(Remove Authorization header)
+Body:
+{
+  "prompt": "Explain recursion"
+}
+
+-- Test 4: Missing prompt (should return 400) --
+Body:
+{
+  "prompt": ""
+}
+
+
+----------------------------------------------------
+3. NOTES API (protected)
+----------------------------------------------------
+Method  : POST
+URL     : http://localhost:5000/api/notes
+Headers :
+  Content-Type: application/json
+  Authorization: Bearer <your_jwt_token>
+
+-- Test 1 --
+Body:
+{
+  "topic": "Operating System Scheduling"
+}
+
+-- Test 2 --
+Body:
+{
+  "topic": "Normalization in DBMS"
+}
+
+-- Test 3 --
+Body:
+{
+  "topic": "TCP/IP Model"
+}
+
+-- Test 4: No token (should return 401) --
+(Remove Authorization header)
+Body:
+{
+  "topic": "TCP/IP Model"
+}
+
+
+----------------------------------------------------
+4. QUIZ API (protected)
+----------------------------------------------------
+Method  : POST
+URL     : http://localhost:5000/api/quiz
+Headers :
+  Content-Type: application/json
+  Authorization: Bearer <your_jwt_token>
+
+-- Test 1: Medium --
+Body:
+{
+  "topic": "DBMS",
+  "difficulty": "medium"
+}
+
+-- Test 2: Easy --
+Body:
+{
+  "topic": "Computer Networks",
+  "difficulty": "easy"
+}
+
+-- Test 3: Hard --
+Body:
+{
+  "topic": "Data Structures",
+  "difficulty": "hard"
+}
+
+-- Test 4: Default difficulty --
+Body:
+{
+  "topic": "Operating Systems"
+}
+
+-- Test 5: Invalid difficulty (should return 400) --
+Body:
+{
+  "topic": "DBMS",
+  "difficulty": "extreme"
+}
+
+-- Test 6: No token (should return 401) --
+(Remove Authorization header)
+Body:
+{
+  "topic": "DBMS",
+  "difficulty": "medium"
+}
+
+
+====================================================
+  CURL COMMANDS (Windows - use double quotes)
+====================================================
+
+Signup:
+curl -X POST http://localhost:5000/api/auth/signup -H "Content-Type: application/json" -d "{\"name\":\"Lucky\",\"email\":\"lucky@example.com\",\"password\":\"secret123\"}"
+
+Login:
+curl -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"lucky@example.com\",\"password\":\"secret123\"}"
+
+Chat (replace TOKEN):
+curl -X POST http://localhost:5000/api/chat -H "Content-Type: application/json" -H "Authorization: Bearer TOKEN" -d "{\"prompt\":\"Explain recursion\"}"
+
+Notes (replace TOKEN):
+curl -X POST http://localhost:5000/api/notes -H "Content-Type: application/json" -H "Authorization: Bearer TOKEN" -d "{\"topic\":\"Operating System Scheduling\"}"
+
+Quiz (replace TOKEN):
+curl -X POST http://localhost:5000/api/quiz -H "Content-Type: application/json" -H "Authorization: Bearer TOKEN" -d "{\"topic\":\"DBMS\",\"difficulty\":\"medium\"}"
+
+
+====================================================
+  EXPECTED RESPONSE SHAPES
+====================================================
+
+Signup / Login:
+{
+  "success": true,
+  "token": "eyJhbGci...",
+  "user": { "id": "...", "name": "Lucky", "email": "lucky@example.com" }
+}
+
+Chat:
+{ "success": true, "reply": "AI explanation..." }
+
+Notes:
+{ "success": true, "notes": "## Heading\n- point..." }
+
+Quiz:
+{
+  "success": true,
+  "questions": [
+    {
+      "question": "...",
+      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+      "answer": "A. ..."
+    }
+  ]
+}
+
+Error:
+{ "success": false, "message": "Error description" }
+
+====================================================
