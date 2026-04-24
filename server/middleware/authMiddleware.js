@@ -1,8 +1,9 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { verifyAccessToken } = require("../utils/tokenManager");
 
 /**
- * Protect middleware — verifies local JWT and attaches user to req.user
+ * Protect middleware — verifies local JWT access token and attaches user to req.user
  */
 const protect = async (req, res, next) => {
   try {
@@ -15,8 +16,14 @@ const protect = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
     
-    // Verify local JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify access token
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch (error) {
+      res.status(401);
+      throw new Error(error.message);
+    }
 
     // Attach user (without password) to request
     req.user = await User.findById(decoded.id).select("-password");
@@ -28,10 +35,6 @@ const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
-    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-      res.status(401);
-      error.message = "Invalid or expired token";
-    }
     next(error);
   }
 };
