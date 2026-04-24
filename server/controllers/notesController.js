@@ -1,5 +1,6 @@
 const { generateContent } = require("../config/gemini");
 const { notesPrompt } = require("../utils/promptTemplates");
+const { generateNotesKey, getTopicTTL } = require("../utils/cacheKeys");
 const { logFeatureUsage } = require("../utils/auditLogger");
 const Note = require("../models/Note");
 
@@ -18,7 +19,9 @@ const generateNotes = async (req, res, next) => {
     }
 
     const fullPrompt = notesPrompt(topic.trim());
-    const notes = await generateContent(fullPrompt);
+    const cacheKey = generateNotesKey(topic.trim());
+    const cacheTTL = getTopicTTL(topic);
+    const notes = await generateContent(fullPrompt, { cacheKey, cacheTTL });
 
     const note = await Note.create({ userId, topic: topic.trim(), content: notes });
 

@@ -2,6 +2,7 @@ const Tesseract = require("tesseract.js");
 const pdfParseLib = require("pdf-parse");
 const pdfParse = pdfParseLib.default || pdfParseLib;
 const { generateContent } = require("../config/gemini");
+const { generateAnswerKey } = require("../utils/cacheKeys");
 const { logFeatureUsage } = require("../utils/auditLogger");
 
 /**
@@ -53,7 +54,8 @@ const handleUpload = async (req, res, next) => {
 
     // --- Send to Gemini ---
     const prompt = `Answer the following question clearly and step-by-step:\n\n${extractedText}`;
-    const answer = await generateContent(prompt);
+    const cacheKey = generateAnswerKey(extractedText);
+    const answer = await generateContent(prompt, { cacheKey });
 
     console.log(`[UPLOAD] ${new Date().toISOString()} - file: ${originalname}, chars: ${extractedText.length}`);
     

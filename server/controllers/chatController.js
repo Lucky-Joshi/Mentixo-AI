@@ -1,5 +1,6 @@
 const { generateContent } = require("../config/gemini");
 const { chatPrompt } = require("../utils/promptTemplates");
+const { generateChatKey } = require("../utils/cacheKeys");
 const { logFeatureUsage } = require("../utils/auditLogger");
 const Chat = require("../models/Chat");
 
@@ -24,7 +25,8 @@ const handleChat = async (req, res, next) => {
     }
 
     const fullPrompt = chatPrompt(prompt.trim());
-    const reply = await generateContent(fullPrompt);
+    const cacheKey = generateChatKey(prompt.trim());
+    const reply = await generateContent(fullPrompt, { cacheKey });
 
     let chat;
 

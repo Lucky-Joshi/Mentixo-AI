@@ -1,5 +1,6 @@
 const { generateContent } = require("../config/gemini");
 const { quizPrompt } = require("../utils/promptTemplates");
+const { generateQuizKey, getTopicTTL } = require("../utils/cacheKeys");
 const { logFeatureUsage } = require("../utils/auditLogger");
 const Quiz = require("../models/Quiz");
 
@@ -24,7 +25,9 @@ const generateQuiz = async (req, res, next) => {
     }
 
     const fullPrompt = quizPrompt(topic.trim(), difficulty);
-    const rawResponse = await generateContent(fullPrompt);
+    const cacheKey = generateQuizKey(topic.trim(), difficulty);
+    const cacheTTL = getTopicTTL(topic);
+    const rawResponse = await generateContent(fullPrompt, { cacheKey, cacheTTL });
 
     const cleaned = rawResponse.replace(/```json|```/g, "").trim();
     let questions;
