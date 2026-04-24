@@ -18,9 +18,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Intercept 429 — trigger upgrade modal via custom event
+// Intercept responses — propagate usage data and 429 limit errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Forward remaining usage count to any listener
+    if (response.data?.remaining !== undefined) {
+      window.dispatchEvent(
+        new CustomEvent('mentixo:usage-update', { detail: { remaining: response.data.remaining } })
+      );
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 429 && error.response?.data?.upgrade === true) {
       window.dispatchEvent(new CustomEvent('mentixo:limit-exceeded'));

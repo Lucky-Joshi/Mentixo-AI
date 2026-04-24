@@ -1,5 +1,6 @@
 const { generateContent } = require("../config/gemini");
 const { quizPrompt } = require("../utils/promptTemplates");
+const { logFeatureUsage } = require("../utils/auditLogger");
 const Quiz = require("../models/Quiz");
 
 const VALID_DIFFICULTIES = ["easy", "medium", "hard"];
@@ -42,7 +43,19 @@ const generateQuiz = async (req, res, next) => {
     });
 
     console.log(`[QUIZ] ${new Date().toISOString()} - topic: ${topic}`);
-    res.json({ success: true, quizId: quiz._id, questions });
+    
+    // Log to audit trail
+    logFeatureUsage(userId, "quiz", "quiz_created", {
+      resourceId: quiz._id,
+      metadata: {
+        status: "success",
+        topic: topic.trim(),
+        difficulty,
+        questionCount: questions.length,
+      },
+    }).catch((err) => console.error("Audit logging failed:", err));
+
+    res.json({ success: true, quizId: quiz._id, questions, remaining: req.usageRemaining });
   } catch (error) {
     next(error);
   }
@@ -74,6 +87,19 @@ const submitQuiz = async (req, res, next) => {
     await quiz.save();
 
     console.log(`[QUIZ SUBMIT] user: ${userId}, score: ${correct}/${quiz.totalQuestions}`);
+    
+    // Log to audit trail
+    logFeatureUsage(userId, "quiz", "quiz_submitted", {
+      resourceId: quiz._id,
+      metadata: {
+        status: "success",
+        topic: quiz.topic,
+        difficulty: quiz.difficulty,
+        score: correct,
+        totalQuestions: quiz.totalQuestions,
+      },
+    }).catch((err) => console.error("Audit logging failed:", err));
+
     res.json({
       success: true,
       score: correct,

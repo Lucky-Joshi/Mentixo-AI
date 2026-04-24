@@ -1,5 +1,6 @@
 const { generateContent } = require("../config/gemini");
 const { chatPrompt } = require("../utils/promptTemplates");
+const { logFeatureUsage } = require("../utils/auditLogger");
 const Chat = require("../models/Chat");
 
 const MAX_PROMPT_LENGTH = 2000;
@@ -58,7 +59,17 @@ const handleChat = async (req, res, next) => {
     }
 
     console.log(`[CHAT] ${new Date().toISOString()} - user: ${userId}`);
-    res.json({ success: true, reply, chatId: chat._id });
+    
+    // Log to audit trail
+    logFeatureUsage(userId, "chat", "message_sent", {
+      resourceId: chat._id,
+      metadata: {
+        status: "success",
+        messageCount: chat.messages.length,
+      },
+    }).catch((err) => console.error("Audit logging failed:", err));
+
+    res.json({ success: true, reply, chatId: chat._id, remaining: req.usageRemaining });
   } catch (error) {
     next(error);
   }

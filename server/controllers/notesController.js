@@ -1,5 +1,6 @@
 const { generateContent } = require("../config/gemini");
 const { notesPrompt } = require("../utils/promptTemplates");
+const { logFeatureUsage } = require("../utils/auditLogger");
 const Note = require("../models/Note");
 
 /**
@@ -19,10 +20,20 @@ const generateNotes = async (req, res, next) => {
     const fullPrompt = notesPrompt(topic.trim());
     const notes = await generateContent(fullPrompt);
 
-    await Note.create({ userId, topic: topic.trim(), content: notes });
+    const note = await Note.create({ userId, topic: topic.trim(), content: notes });
 
     console.log(`[NOTES] ${new Date().toISOString()} - topic: ${topic}`);
-    res.json({ success: true, notes });
+    
+    // Log to audit trail
+    logFeatureUsage(userId, "notes", "notes_generated", {
+      resourceId: note._id,
+      metadata: {
+        status: "success",
+        topic: topic.trim(),
+      },
+    }).catch((err) => console.error("Audit logging failed:", err));
+
+    res.json({ success: true, notes, remaining: req.usageRemaining });
   } catch (error) {
     next(error);
   }

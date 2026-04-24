@@ -2,6 +2,7 @@ const Tesseract = require("tesseract.js");
 const pdfParseLib = require("pdf-parse");
 const pdfParse = pdfParseLib.default || pdfParseLib;
 const { generateContent } = require("../config/gemini");
+const { logFeatureUsage } = require("../utils/auditLogger");
 
 /**
  * Extract text from an image buffer using Tesseract OCR
@@ -55,6 +56,15 @@ const handleUpload = async (req, res, next) => {
     const answer = await generateContent(prompt);
 
     console.log(`[UPLOAD] ${new Date().toISOString()} - file: ${originalname}, chars: ${extractedText.length}`);
+    
+    // Log to audit trail
+    logFeatureUsage(req.user._id, "upload", "file_uploaded", {
+      metadata: {
+        status: "success",
+        fileName: originalname,
+        fileSize: req.file.size,
+      },
+    }).catch((err) => console.error("Audit logging failed:", err));
 
     res.json({ success: true, extractedText, answer });
   } catch (error) {

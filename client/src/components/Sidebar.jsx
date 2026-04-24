@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import UsageBar from './UsageBar';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -55,6 +56,9 @@ const Sidebar = () => {
             </NavLink>
           ))}
         </nav>
+
+        {/* Usage indicator */}
+        <UsageBar collapsed />
 
         {/* Logout icon */}
         <button
@@ -150,18 +154,8 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Footer tip */}
-      <div className="p-4 border-t border-white/5 bg-white/5">
-        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
-          <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1 flex items-center gap-1.5">
-            <Zap className="w-3 h-3 fill-current" />
-            Mentixo AI
-          </p>
-          <p className="text-[10px] text-text-muted leading-relaxed font-medium">
-            Your AI-powered study assistant. Chat, notes and quizzes — all in one place.
-          </p>
-        </div>
-      </div>
+      {/* Usage bar */}
+      <UsageBar />
     </aside>
   );
 };
