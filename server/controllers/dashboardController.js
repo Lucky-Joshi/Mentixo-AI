@@ -1,6 +1,4 @@
-const Chat = require("../models/Chat");
-const Note = require("../models/Note");
-const Quiz = require("../models/Quiz");
+const prisma = require("../lib/prisma");
 
 /**
  * GET /api/dashboard
@@ -8,21 +6,41 @@ const Quiz = require("../models/Quiz");
  */
 const getDashboard = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     // Run all queries in parallel for performance
     const [totalChats, totalNotes, totalQuizzes, quizScores, recentChats, recentNotes, recentQuizzes] =
       await Promise.all([
-        Chat.countDocuments({ userId }),
-        Note.countDocuments({ userId }),
-        Quiz.countDocuments({ userId }),
+        prisma.chat.count({ where: { userId } }),
+        prisma.note.count({ where: { userId } }),
+        prisma.quiz.count({ where: { userId } }),
 
         // Only quizzes that have been submitted (score is not null)
-        Quiz.find({ userId, score: { $ne: null } }).select("score totalQuestions"),
+        prisma.quiz.findMany({
+          where: { userId, score: { not: null } },
+          select: { score: true, totalQuestions: true },
+        }),
 
-        Chat.find({ userId }).select("title createdAt").sort({ createdAt: -1 }).limit(5),
-        Note.find({ userId }).select("topic createdAt").sort({ createdAt: -1 }).limit(5),
-        Quiz.find({ userId }).select("topic score createdAt").sort({ createdAt: -1 }).limit(5),
+        prisma.chat.findMany({
+          where: { userId },
+          select: { id: true, title: true, createdAt: true },
+          orderBy: { createdAt: -1 },
+          take: 5,
+        }),
+
+        prisma.note.findMany({
+          where: { userId },
+          select: { id: true, topic: true, createdAt: true },
+          orderBy: { createdAt: -1 },
+          take: 5,
+        }),
+
+        prisma.quiz.findMany({
+          where: { userId },
+          select: { id: true, topic: true, score: true, createdAt: true },
+          orderBy: { createdAt: -1 },
+          take: 5,
+        }),
       ]);
 
     // Average score as a percentage across all submitted quizzes

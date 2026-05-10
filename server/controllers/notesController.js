@@ -1,8 +1,8 @@
+const prisma = require("../lib/prisma");
 const { generateContent } = require("../config/gemini");
 const { notesPrompt } = require("../utils/promptTemplates");
 const { generateNotesKey, getTopicTTL } = require("../utils/cacheKeys");
 const { logFeatureUsage } = require("../utils/auditLogger");
-const Note = require("../models/Note");
 
 /**
  * POST /api/notes
@@ -11,7 +11,7 @@ const Note = require("../models/Note");
 const generateNotes = async (req, res, next) => {
   try {
     const { topic } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     if (!topic || typeof topic !== "string") {
       res.status(400);
@@ -23,13 +23,19 @@ const generateNotes = async (req, res, next) => {
     const cacheTTL = getTopicTTL(topic);
     const notes = await generateContent(fullPrompt, { cacheKey, cacheTTL });
 
-    const note = await Note.create({ userId, topic: topic.trim(), content: notes });
+    const note = await prisma.note.create({
+      data: {
+        userId,
+        topic: topic.trim(),
+        content: notes,
+      },
+    });
 
     console.log(`[NOTES] ${new Date().toISOString()} - topic: ${topic}`);
-    
+
     // Log to audit trail
     logFeatureUsage(userId, "notes", "notes_generated", {
-      resourceId: note._id,
+      resourceId: note.id,
       metadata: {
         status: "success",
         topic: topic.trim(),
@@ -48,11 +54,13 @@ const generateNotes = async (req, res, next) => {
  */
 const getNotesHistory = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const notes = await Note.find({ userId })
-      .select("topic content createdAt")
-      .sort({ createdAt: -1 })
-      .limit(20);
+    const userId = req.user.id;
+    const notes = await prisma.note.findMany({
+      where: { userId },
+      select: { id: true, topic: true, content: true, createdAt: true },
+      orderBy: { createdAt: -1 },
+      take: 20,
+    });
 
     res.json({ success: true, notes });
   } catch (error) {

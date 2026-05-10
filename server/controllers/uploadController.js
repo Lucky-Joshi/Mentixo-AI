@@ -60,7 +60,7 @@ const handleUpload = async (req, res, next) => {
     console.log(`[UPLOAD] ${new Date().toISOString()} - file: ${originalname}, chars: ${extractedText.length}`);
     
     // Log to audit trail
-    logFeatureUsage(req.user._id, "upload", "file_uploaded", {
+    logFeatureUsage(req.user.id, "upload", "file_uploaded", {
       metadata: {
         status: "success",
         fileName: originalname,

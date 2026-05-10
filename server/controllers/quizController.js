@@ -1,8 +1,8 @@
+const prisma = require("../lib/prisma");
 const { generateContent } = require("../config/gemini");
 const { quizPrompt } = require("../utils/promptTemplates");
 const { generateQuizKey, getTopicTTL } = require("../utils/cacheKeys");
 const { logFeatureUsage } = require("../utils/auditLogger");
-const Quiz = require("../models/Quiz");
 
 const VALID_DIFFICULTIES = ["easy", "medium", "hard"];
 
@@ -13,7 +13,7 @@ const VALID_DIFFICULTIES = ["easy", "medium", "hard"];
 const generateQuiz = async (req, res, next) => {
   try {
     const { topic, difficulty = "medium" } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     if (!topic || typeof topic !== "string") {
       res.status(400);
@@ -37,19 +37,28 @@ const generateQuiz = async (req, res, next) => {
       throw new Error("Failed to parse quiz response from AI. Please try again.");
     }
 
-    const quiz = await Quiz.create({
-      userId,
-      topic: topic.trim(),
-      difficulty,
-      questions,
-      totalQuestions: questions.length,
+    const quiz = await prisma.quiz.create({
+      data: {
+        userId,
+        topic: topic.trim(),
+        difficulty,
+        totalQuestions: questions.length,
+        questions: {
+          create: questions.map((q) => ({
+            question: q.question,
+            options: q.options,
+            answer: q.answer,
+          })),
+        },
+      },
+      include: { questions: true },
     });
 
     console.log(`[QUIZ] ${new Date().toISOString()} - topic: ${topic}`);
-    
+
     // Log to audit trail
     logFeatureUsage(userId, "quiz", "quiz_created", {
-      resourceId: quiz._id,
+      resourceId: quiz.id,
       metadata: {
         status: "success",
         topic: topic.trim(),
@@ -58,7 +67,12 @@ const generateQuiz = async (req, res, next) => {
       },
     }).catch((err) => console.error("Audit logging failed:", err));
 
-    res.json({ success: true, quizId: quiz._id, questions, remaining: req.usageRemaining });
+    res.json({
+      success: true,
+      quizId: quiz.id,
+      questions: quiz.questions,
+      remaining: req.usageRemaining,
+    });
   } catch (error) {
     next(error);
   }
@@ -71,10 +85,14 @@ const generateQuiz = async (req, res, next) => {
  */
 const submitQuiz = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { answers } = req.body;
 
-    const quiz = await Quiz.findOne({ _id: req.params.id, userId });
+    const quiz = await prisma.quiz.findFirst({
+      where: { id: req.params.id, userId },
+      include: { questions: true },
+    });
+
     if (!quiz) {
       res.status(404);
       throw new Error("Quiz not found");
@@ -86,14 +104,16 @@ const submitQuiz = async (req, res, next) => {
       if (answers[i] && answers[i] === q.answer) correct++;
     });
 
-    quiz.score = correct;
-    await quiz.save();
+    await prisma.quiz.update({
+      where: { id: quiz.id },
+      data: { score: correct },
+    });
 
     console.log(`[QUIZ SUBMIT] user: ${userId}, score: ${correct}/${quiz.totalQuestions}`);
-    
+
     // Log to audit trail
     logFeatureUsage(userId, "quiz", "quiz_submitted", {
-      resourceId: quiz._id,
+      resourceId: quiz.id,
       metadata: {
         status: "success",
         topic: quiz.topic,
@@ -119,11 +139,20 @@ const submitQuiz = async (req, res, next) => {
  */
 const getQuizHistory = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const quizzes = await Quiz.find({ userId })
-      .select("topic difficulty score totalQuestions createdAt")
-      .sort({ createdAt: -1 })
-      .limit(20);
+    const userId = req.user.id;
+    const quizzes = await prisma.quiz.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        topic: true,
+        difficulty: true,
+        score: true,
+        totalQuestions: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: -1 },
+      take: 20,
+    });
 
     res.json({ success: true, quizzes });
   } catch (error) {

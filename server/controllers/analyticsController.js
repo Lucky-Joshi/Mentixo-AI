@@ -11,7 +11,7 @@ const {
  */
 const getUserAnalytics = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { featureType, startDate, endDate } = req.query;
 
     const filters = {};
@@ -42,7 +42,7 @@ const getUserAnalytics = async (req, res, next) => {
  */
 const getUserHistory = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { featureType, limit = 50, skip = 0 } = req.query;
 
     const options = {
