@@ -29,7 +29,7 @@ const Signup = () => {
       
       // Auto-login after successful registration
       setTimeout(() => {
-        login(response.data.user, response.data.token);
+        login(response.data.user, response.data.accessToken);
         navigate('/dashboard');
       }, 1500);
       

@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
 export const authService = {
   login: (email, password) => api.post('/auth/login', { email, password }),
-  signup: (userData) => api.post('/auth/signup', userData),
+  signup: (name, email, password) => api.post('/auth/signup', { name, email, password }),
   getProfile: () => api.get('/auth/profile'),
 };
 

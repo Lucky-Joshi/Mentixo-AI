@@ -21,7 +21,7 @@ const Login = () => {
 
     try {
       const response = await authService.login(email, password);
-      login(response.data.user, response.data.token);
+      login(response.data.user, response.data.accessToken);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login Error:', err);
