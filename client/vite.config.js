@@ -21,11 +21,19 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Split vendor chunks for better caching
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          motion: ['framer-motion'],
-          markdown: ['react-markdown', 'remark-gfm'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react')) {
+            return 'react';
+          }
+          if (id.includes('node_modules/react-router-dom')) {
+            return 'router';
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'motion';
+          }
+          if (id.includes('node_modules/react-markdown') || id.includes('node_modules/remark-gfm')) {
+            return 'markdown';
+          }
         },
       },
     },
