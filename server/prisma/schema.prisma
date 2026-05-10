@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String?
+  email     String     @unique
+  password  String?
+
+  // Usage tracking
+  dailyUsage    Int       @default(0)
+  dailyUploads  Int       @default(0)
+  lastReset     DateTime?
+
+  // Relations
+  refreshTokens RefreshToken[]
+  chats         Chat[]
+  notes         Note[]
+  quizzes       Quiz[]
+  auditLogs     AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Chat {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String     @default("")
+  messages  Message[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String   // "user" or "ai"
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([chatId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Quiz {
+  id              String     @id @default(cuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic           String
+  difficulty      String     @default("medium") // "easy", "medium", "hard"
+  questions       Question[]
+  score           Int?       // null = not submitted yet
+  totalQuestions  Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  quizId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question  String   @db.Text
+  options   String[] // JSON array stored as text
+  answer    String
+  createdAt DateTime @default(now())
+
+  @@index([quizId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  featureType String   // "chat", "notes", "quiz", "upload"
+  action      String   // e.g., "message_sent", "notes_generated", "quiz_created", "file_uploaded"
+  resourceId  String?  // Reference to Chat/Note/Quiz doc
+  metadata    String?  @db.Text // JSON metadata
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([featureType])
+  @@index([timestamp])
+  @@index([userId, featureType, timestamp])
+}
