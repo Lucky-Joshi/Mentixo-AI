@@ -30,3 +30,7 @@ dist-ssr
 
 # Tesseract language data cache
 tessdata/
+
+# Prisma
+prisma/migrations/
+.prisma/

@@ -7,7 +7,6 @@ const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 
 const connectDB = require("./config/db");
-const { initRedis, closeRedis } = require("./config/redis");
 const errorHandler = require("./middleware/errorMiddleware");
 
 const authRoutes = require("./routes/authRoutes");
@@ -17,7 +16,6 @@ const quizRoutes = require("./routes/quizRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-const cacheRoutes = require("./routes/cacheRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,7 +64,6 @@ app.use("/api/quiz", quizRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/analytics", analyticsRoutes);
-app.use("/api/cache", cacheRoutes);
 
 // Health check
 app.get("/health", (req, res) => res.json({ status: "ok", env: NODE_ENV }));
@@ -76,17 +73,13 @@ app.get("/", (req, res) => res.json({ message: "Mentixo AI server is running" })
 app.use(errorHandler);
 
 // --- Start with graceful shutdown ---
-connectDB().then(async () => {
-  // Initialize Redis for caching
-  await initRedis();
-
+connectDB().then(() => {
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`[${NODE_ENV}] Server running on port ${PORT}`);
   });
 
   const shutdown = async (signal) => {
     console.log(`${signal} received — shutting down gracefully`);
-    await closeRedis();
     server.close(() => {
       console.log("HTTP server closed");
       process.exit(0);
