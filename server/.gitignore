@@ -1,36 +1,52 @@
+# Dependencies
+node_modules/
+vendor/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-/node_modules
-dist
-dist-ssr
-*.local
-
-# Environment — never commit real secrets
-.env
-.env.local
-.env.production
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# OS files
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
 
-# Tesseract language data cache
-tessdata/
+# Testing
+coverage/
+.nyc_output/
 
-# Prisma
-prisma/migrations/
-.prisma/
+# Misc
+*.pem
+*.key
+.temp/
+.tmp/
