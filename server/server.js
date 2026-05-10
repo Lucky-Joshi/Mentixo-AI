@@ -30,26 +30,12 @@ app.use(compression());
 // --- CORS ---
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5173"];
+  : ["http://localhost:5173", "https://mentixo.netlify.app", "https://www.mentixo.netlify.app"];
 
 console.log("[CORS] Allowed origins:", allowedOrigins);
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) {
-      console.log("[CORS] No origin header (likely mobile/curl)");
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      console.log(`[CORS] ✓ Origin allowed: ${origin}`);
-      return callback(null, true);
-    }
-    
-    console.log(`[CORS] ✗ Origin blocked: ${origin}`);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: true, // Allow all origins for now (debug mode)
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
