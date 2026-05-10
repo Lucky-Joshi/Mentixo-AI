@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const prisma = require("../lib/prisma");
 
 const LIMITS = {
   messages: 30, // chat + notes + quiz per day
@@ -8,15 +8,20 @@ const LIMITS = {
 /**
  * Resets daily counters if the user's lastReset date is not today
  */
-const resetIfNewDay = async (user) => {
+const resetIfNewDay = async (userId) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
   const today = new Date().toDateString();
   const lastReset = user.lastReset ? new Date(user.lastReset).toDateString() : null;
 
   if (lastReset !== today) {
-    user.dailyUsage = 0;
-    user.dailyUploads = 0;
-    user.lastReset = new Date();
-    await user.save();
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        dailyUsage: 0,
+        dailyUploads: 0,
+        lastReset: new Date(),
+      },
+    });
   }
 };
 
@@ -26,8 +31,9 @@ const resetIfNewDay = async (user) => {
  */
 const checkMessageLimit = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
-    await resetIfNewDay(user);
+    await resetIfNewDay(req.user.id);
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
     if (user.dailyUsage >= LIMITS.messages) {
       return res.status(429).json({
@@ -39,11 +45,13 @@ const checkMessageLimit = async (req, res, next) => {
       });
     }
 
-    user.dailyUsage += 1;
-    await user.save();
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { dailyUsage: user.dailyUsage + 1 },
+    });
 
     // Attach remaining count so controllers can forward it
-    req.usageRemaining = LIMITS.messages - user.dailyUsage;
+    req.usageRemaining = LIMITS.messages - (user.dailyUsage + 1);
     next();
   } catch (error) {
     next(error);
@@ -56,8 +64,9 @@ const checkMessageLimit = async (req, res, next) => {
  */
 const checkUploadLimit = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
-    await resetIfNewDay(user);
+    await resetIfNewDay(req.user.id);
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
     if (user.dailyUploads >= LIMITS.uploads) {
       return res.status(429).json({
@@ -69,10 +78,12 @@ const checkUploadLimit = async (req, res, next) => {
       });
     }
 
-    user.dailyUploads += 1;
-    await user.save();
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { dailyUploads: user.dailyUploads + 1 },
+    });
 
-    req.uploadRemaining = LIMITS.uploads - user.dailyUploads;
+    req.uploadRemaining = LIMITS.uploads - (user.dailyUploads + 1);
     next();
   } catch (error) {
     next(error);
