@@ -5,7 +5,10 @@
 const errorHandler = (err, req, res, next) => {
   const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
 
-  console.error(`[ERROR] ${req.method} ${req.originalUrl} - ${err.message}`);
+  console.error(`[ERROR] ${req.method} ${req.originalUrl}`);
+  console.error(`[ERROR] Status: ${statusCode}`);
+  console.error(`[ERROR] Message: ${err.message}`);
+  console.error(`[ERROR] Stack: ${err.stack}`);
 
   res.status(statusCode).json({
     success: false,
