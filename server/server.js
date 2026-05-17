@@ -26,6 +26,9 @@ console.log(`[SERVER] JWT_SECRET: ${process.env.JWT_SECRET ? "SET" : "NOT SET"}`
 console.log(`[SERVER] DATABASE_URL: ${process.env.DATABASE_URL ? "SET" : "NOT SET"}`);
 console.log(`[SERVER] GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? "SET" : "NOT SET"}`);
 
+// --- Trust proxy (important for Render) ---
+app.set("trust proxy", 1);
+
 // --- Security headers ---
 app.use(helmet());
 
@@ -56,6 +59,10 @@ const ipLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many requests, please try again later." },
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === "/health" || req.path === "/";
+  },
 });
 app.use("/api", ipLimiter);
 
