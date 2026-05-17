@@ -5,8 +5,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const generateContent = async (prompt, options = {}) => {
   const { retries = 3, cacheKey, cacheTTL } = options;
 
-  // Use gemini-pro (most reliable and available model)
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  // Use gemini-2.5-flash (latest model)
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
