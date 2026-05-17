@@ -24,21 +24,21 @@ const getDashboard = async (req, res, next) => {
         prisma.chat.findMany({
           where: { userId },
           select: { id: true, title: true, createdAt: true },
-          orderBy: { createdAt: -1 },
+          orderBy: { createdAt: "desc" },
           take: 5,
         }),
 
         prisma.note.findMany({
           where: { userId },
           select: { id: true, topic: true, createdAt: true },
-          orderBy: { createdAt: -1 },
+          orderBy: { createdAt: "desc" },
           take: 5,
         }),
 
         prisma.quiz.findMany({
           where: { userId },
           select: { id: true, topic: true, score: true, createdAt: true },
-          orderBy: { createdAt: -1 },
+          orderBy: { createdAt: "desc" },
           take: 5,
         }),
       ]);

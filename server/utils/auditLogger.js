@@ -104,7 +104,7 @@ const getUserUsageHistory = async (userId, options = {}) => {
     const logs = await prisma.auditLog.findMany({
       where,
       select: { featureType: true, action: true, metadata: true, timestamp: true },
-      orderBy: { timestamp: -1 },
+      orderBy: { timestamp: "desc" },
       take: limit,
       skip: skip,
     });
