@@ -93,7 +93,7 @@ const getChatHistory = async (req, res, next) => {
     const chats = await prisma.chat.findMany({
       where: { userId },
       select: { id: true, title: true, createdAt: true },
-      orderBy: { createdAt: -1 },
+      orderBy: { createdAt: "desc" },
       take: 20,
     });
 

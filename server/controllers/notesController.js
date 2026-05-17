@@ -58,7 +58,7 @@ const getNotesHistory = async (req, res, next) => {
     const notes = await prisma.note.findMany({
       where: { userId },
       select: { id: true, topic: true, content: true, createdAt: true },
-      orderBy: { createdAt: -1 },
+      orderBy: { createdAt: "desc" },
       take: 20,
     });
 

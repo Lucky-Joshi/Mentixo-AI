@@ -150,7 +150,7 @@ const getQuizHistory = async (req, res, next) => {
         totalQuestions: true,
         createdAt: true,
       },
-      orderBy: { createdAt: -1 },
+      orderBy: { createdAt: "desc" },
       take: 20,
     });
 
