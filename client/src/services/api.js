@@ -2,6 +2,8 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.29.242:5000/api';
 
+console.log('[API] Using API URL:', API_URL);
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -14,6 +16,9 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log('[API] Token attached to request:', config.url);
+  } else {
+    console.warn('[API] No token found in localStorage for:', config.url);
   }
   return config;
 });
@@ -30,6 +35,10 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.response?.status === 401) {
+      console.error('[API] 401 Unauthorized - Token may be invalid or expired');
+      console.error('[API] Token in storage:', localStorage.getItem('token') ? 'YES' : 'NO');
+    }
     if (error.response?.status === 429 && error.response?.data?.upgrade === true) {
       window.dispatchEvent(new CustomEvent('mentixo:limit-exceeded'));
     }

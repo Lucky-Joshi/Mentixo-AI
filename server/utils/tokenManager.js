@@ -6,20 +6,28 @@ const crypto = require("crypto");
  * @param {string} userId - User ID
  * @returns {string} Signed JWT access token
  */
-const generateAccessToken = (userId) =>
-  jwt.sign({ id: userId, type: "access" }, process.env.JWT_SECRET, {
+const generateAccessToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is not set");
+  }
+  return jwt.sign({ id: userId, type: "access" }, process.env.JWT_SECRET, {
     expiresIn: "15m",
   });
+};
 
 /**
  * Generate a refresh token (long-lived, 7 days)
  * @param {string} userId - User ID
  * @returns {string} Signed JWT refresh token
  */
-const generateRefreshToken = (userId) =>
-  jwt.sign({ id: userId, type: "refresh" }, process.env.JWT_SECRET, {
+const generateRefreshToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is not set");
+  }
+  return jwt.sign({ id: userId, type: "refresh" }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
+};
 
 /**
  * Verify and decode an access token
@@ -29,17 +37,19 @@ const generateRefreshToken = (userId) =>
  */
 const verifyAccessToken = (token) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is not set");
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.type !== "access") {
       throw new Error("Invalid token type");
     }
     return decoded;
   } catch (error) {
-    throw new Error(
-      error.name === "TokenExpiredError"
-        ? "Access token expired"
-        : "Invalid access token"
-    );
+    if (error.name === "TokenExpiredError") {
+      throw new Error("Access token expired");
+    }
+    throw new Error("Invalid access token: " + error.message);
   }
 };
 
@@ -51,17 +61,19 @@ const verifyAccessToken = (token) => {
  */
 const verifyRefreshToken = (token) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is not set");
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.type !== "refresh") {
       throw new Error("Invalid token type");
     }
     return decoded;
   } catch (error) {
-    throw new Error(
-      error.name === "TokenExpiredError"
-        ? "Refresh token expired"
-        : "Invalid refresh token"
-    );
+    if (error.name === "TokenExpiredError") {
+      throw new Error("Refresh token expired");
+    }
+    throw new Error("Invalid refresh token: " + error.message);
   }
 };
 
@@ -73,92 +85,10 @@ const verifyRefreshToken = (token) => {
 const hashRefreshToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-/**
- * Store a refresh token for a user
- * @param {object} user - Mongoose User document
- * @param {string} token - Raw refresh token
- * @returns {Promise<void>}
- */
-const storeRefreshToken = async (user, token) => {
-  const hashedToken = hashRefreshToken(token);
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-  user.refreshTokens.push({
-    token: hashedToken,
-    expiresAt,
-  });
-
-  // Keep only last 5 refresh tokens per user (cleanup old ones)
-  if (user.refreshTokens.length > 5) {
-    user.refreshTokens = user.refreshTokens.slice(-5);
-  }
-
-  await user.save();
-};
-
-/**
- * Verify a refresh token exists and is valid for a user
- * @param {object} user - Mongoose User document
- * @param {string} token - Raw refresh token to verify
- * @returns {boolean} True if token is valid and not expired
- */
-const verifyRefreshTokenExists = (user, token) => {
-  const hashedToken = hashRefreshToken(token);
-  const now = new Date();
-
-  return user.refreshTokens.some(
-    (rt) =>
-      rt.token === hashedToken &&
-      rt.expiresAt > now // not expired
-  );
-};
-
-/**
- * Revoke a specific refresh token
- * @param {object} user - Mongoose User document
- * @param {string} token - Raw refresh token to revoke
- * @returns {Promise<void>}
- */
-const revokeRefreshToken = async (user, token) => {
-  const hashedToken = hashRefreshToken(token);
-  user.refreshTokens = user.refreshTokens.filter(
-    (rt) => rt.token !== hashedToken
-  );
-  await user.save();
-};
-
-/**
- * Revoke all refresh tokens for a user (logout from all devices)
- * @param {object} user - Mongoose User document
- * @returns {Promise<void>}
- */
-const revokeAllRefreshTokens = async (user) => {
-  user.refreshTokens = [];
-  await user.save();
-};
-
-/**
- * Clean up expired refresh tokens (run periodically)
- * @param {object} user - Mongoose User document
- * @returns {Promise<void>}
- */
-const cleanupExpiredTokens = async (user) => {
-  const now = new Date();
-  user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > now);
-  if (user.refreshTokens.length > 0) {
-    await user.save();
-  }
-};
-
 module.exports = {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
   hashRefreshToken,
-  storeRefreshToken,
-  verifyRefreshTokenExists,
-  revokeRefreshToken,
-  revokeAllRefreshTokens,
-  cleanupExpiredTokens,
 };
