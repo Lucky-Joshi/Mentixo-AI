@@ -21,6 +21,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "production";
 
+console.log(`[SERVER] Starting in ${NODE_ENV} mode on port ${PORT}`);
+console.log(`[SERVER] JWT_SECRET: ${process.env.JWT_SECRET ? "SET" : "NOT SET"}`);
+console.log(`[SERVER] DATABASE_URL: ${process.env.DATABASE_URL ? "SET" : "NOT SET"}`);
+console.log(`[SERVER] GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? "SET" : "NOT SET"}`);
+
 // --- Security headers ---
 app.use(helmet());
 
@@ -64,8 +69,22 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 // Health check
-app.get("/health", (req, res) => res.json({ status: "ok", env: NODE_ENV }));
-app.get("/", (req, res) => res.json({ message: "Mentixo AI server is running" }));
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    env: NODE_ENV,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+app.get("/", (req, res) => {
+  res.json({ 
+    message: "Mentixo AI server is running",
+    version: "2.0",
+    env: NODE_ENV,
+  });
+});
 
 // --- Global Error Handler ---
 app.use(errorHandler);
@@ -74,6 +93,7 @@ app.use(errorHandler);
 connectDB().then(() => {
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`[${NODE_ENV}] Server running on port ${PORT}`);
+    console.log(`[SERVER] Health check: GET /health`);
   });
 
   const shutdown = async (signal) => {
@@ -86,4 +106,8 @@ connectDB().then(() => {
 
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
+}).catch((error) => {
+  console.error("[ERROR] Failed to connect to database:", error.message);
+  console.error("[ERROR] Server startup failed");
+  process.exit(1);
 });
